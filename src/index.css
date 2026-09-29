@@ -1,0 +1,115 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 216 28% 15%;
+    --foreground: 150 33% 96%;
+    --card: 216 28% 18%;
+    --card-foreground: 150 33% 96%;
+    --popover: 216 28% 15%;
+    --popover-foreground: 150 33% 96%;
+    --primary: 180 50% 36%;
+    --primary-foreground: 150 33% 96%;
+    --secondary: 180 30% 76%;
+    --secondary-foreground: 216 28% 15%;
+    --muted: 216 20% 25%;
+    --muted-foreground: 216 10% 60%;
+    --accent: 180 50% 36%;
+    --accent-foreground: 150 33% 96%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 150 33% 96%;
+    --status-good: 142 71% 45%;
+    --status-warning: 38 92% 50%;
+    --status-danger: 0 72% 51%;
+    --border: 216 20% 25%;
+    --input: 216 20% 25%;
+    --ring: 180 50% 36%;
+    --radius: 1rem;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  body {
+    @apply bg-background text-foreground;
+    font-family: system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out forwards;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+::-webkit-scrollbar { display: none; }
+* { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* 语音弹窗：从底部上滑 */
+@keyframes voice-sheet-in {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.voice-sheet-in {
+  animation: voice-sheet-in 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* 语音：外圈扩散波 */
+@keyframes voice-ripple {
+  0% { transform: scale(0.7); opacity: 0.7; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+.voice-ripple {
+  animation: voice-ripple 1.6s ease-out infinite;
+}
+
+/* 语音：声波跳动条 */
+@keyframes voice-bar {
+  0%, 100% { height: 6px; }
+  50% { height: 24px; }
+}
+.voice-bar {
+  height: 6px;
+  animation: voice-bar 0.8s ease-in-out infinite;
+}
+
+/* 成铁大屏动效 */
+@keyframes ct-pulse-ring {
+  0% { transform: scale(0.6); opacity: 0.9; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+.ct-pulse-ring {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ct-pulse-ring 1.6s ease-out infinite;
+}
+@keyframes ct-dashflow {
+  to { stroke-dashoffset: -64; }
+}
+.ct-dashflow { animation: ct-dashflow 1.2s linear infinite; }
+@keyframes ct-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.ct-fade-in { animation: ct-fade-in 0.4s ease-out; }
+@keyframes ct-glow-red {
+  0%, 100% { box-shadow: 0 0 12px rgba(230, 0, 18, 0.5); }
+  50% { box-shadow: 0 0 26px rgba(230, 0, 18, 0.85); }
+}
+.ct-glow-red { animation: ct-glow-red 1.4s ease-in-out infinite; }
