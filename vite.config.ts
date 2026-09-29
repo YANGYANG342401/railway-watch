@@ -4,7 +4,7 @@ import { defineConfig } from "vite";
 
 export default defineConfig({
   plugins: [react()],
-  base: "/railway-watch-app/",
+  base: "/railway-watch/",
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
