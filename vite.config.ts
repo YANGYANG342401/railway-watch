@@ -20,7 +20,7 @@ export default defineConfig({
     port: 5274,
     strictPort: true,
     headers: {
-      'Cache-Control': 'no-cache',
+      'Cache-Control': 'no-store',
     },
   },
 });

@@ -1,495 +1,307 @@
-import { useState, useEffect } from 'react'
-import { Card, CardContent } from '@/components/ui/card'
+import { useEffect, useState } from 'react'
 import {
+  TrainFront,
+  Watch,
   Heart,
   Droplets,
-  Moon,
+  Activity,
+  Thermometer,
+  Footprints,
   ChevronRight,
-  Zap,
-  TrendingUp,
-  TrendingDown,
-  Minus,
-  MessageCircle,
-  Sparkles,
-  Sun,
-  MoonStar,
-  Flame,
-  Coins,
-  Watch,
-  TrainFront,
   Siren,
-  Activity
+  TrendingUp,
+  MapPin,
+  Sun,
+  Moon,
 } from 'lucide-react'
+import { BottomNav } from '@/components/BottomNav'
+import { STAGE, ties, totalSleep, stageHours, APP_VERSION } from '@/data/ctMock'
 
-// 模拟数据（铁路重点人员·机车乘务）
-const mockData = {
+// —— mock 数据（机车乘务·45岁·倒班）——
+const mock = {
   userName: '王师傅',
   jobTitle: '机车司机',
-  score: 82,
-  scoreChange: +3,
-  status: 'good' as const,
-  advice: '状态不错，昨晚睡眠比前天多了40分钟。今日值乘K4832次，注意途中补水，退乘后早点休息。',
-  currentHeartRate: 72,
-  metrics: {
-    heartRate: { value: 72, unit: 'bpm', status: 'good' as const, label: '静息心率', trend: 'stable' as const },
-    bloodOxygen: { value: 98, unit: '%', status: 'good' as const, label: '血氧', trend: 'stable' as const },
-    sleep: { value: 6.5, unit: '小时', status: 'warning' as const, label: '昨晚睡眠', detail: '深睡2.1h', trend: 'up' as const },
-    recovery: { value: 78, unit: '%', status: 'good' as const, label: '身体恢复度', trend: 'up' as const },
-    bloodPressure: { value: '128/82', unit: 'mmHg', status: 'good' as const, label: '血压', trend: 'stable' as const }
+  weather: '小雨 15℃',
+  location: '达州市达川区',
+  watch: { battery: 67, connected: true },
+  sleep: {
+    hours: 7, minutes: 12,
+    verdict: { level: 'green' as const, label: '睡得不错' },
+    changeMinutes: +40,
+    fellAsleep: '22:47',
+    wokeUp: '05:59',
+    interruptions: 1,
   },
-  workTime: { today: { hours: 5, minutes: 32 }, month: { hours: 141, target: 167 }, overwork: { count: 0 } },
-  wearTime: { hours: 7, minutes: 32, compliant: true, offlineMinutes: 23, maxAllowed: 60 },
-  watchBattery: 67,
-  watchConnected: true,
-  sos: { monthCount: 0, lastRecord: '9月12日 已解除', normal: true },
-  quickQuestions: ['我今天状态怎么样？', '夜班退乘后怎么补觉？', '血压偏高要注意什么？']
+  today: { recovery: 78, restingHr: 63, spo2: 98 },
+  metrics: {
+    bp: { value: '128/82', hint: '光电估算 · 仅供参考' },
+    temp: { value: '36.5', hint: '正常' },
+    steps: { value: '6,432', hint: '目标8,000步' },
+    wear: { value: '7h32m', hint: '值乘时段建议全程佩戴' },
+  },
+  report: { ready: true },
+  sos: { monthCount: 0, lastRecord: '9月12日 · 已核实平安' },
 }
 
-const statusConfig = {
-  good: { label: '状态良好', color: '#34d399', lightBg: 'bg-emerald-50', darkBg: 'bg-emerald-500/10', lightText: 'text-emerald-700', darkText: 'text-emerald-400', lightBorder: 'border-emerald-200', darkBorder: 'border-emerald-500/25' },
-  warning: { label: '需要注意', color: '#fbbf24', lightBg: 'bg-amber-50', darkBg: 'bg-amber-500/10', lightText: 'text-amber-700', darkText: 'text-amber-400', lightBorder: 'border-amber-200', darkBorder: 'border-amber-500/25' },
-  danger: { label: '状态异常', color: '#f87171', lightBg: 'bg-red-50', darkBg: 'bg-red-500/10', lightText: 'text-red-700', darkText: 'text-red-400', lightBorder: 'border-red-200', darkBorder: 'border-red-500/25' },
+// —— 信号灯三态（铁路信号语言：绿=正常 黄=注意 红=异常）——
+const SIGNAL = {
+  green: { dot: 'bg-emerald-400', glow: 'shadow-[0_0_8px_rgba(52,211,153,0.9)]', text: 'text-emerald-400', chip: 'bg-emerald-500/10 border-emerald-500/25' },
+  amber: { dot: 'bg-amber-400', glow: 'shadow-[0_0_8px_rgba(251,191,36,0.9)]', text: 'text-amber-400', chip: 'bg-amber-500/10 border-amber-500/25' },
+  red: { dot: 'bg-red-400', glow: 'shadow-[0_0_8px_rgba(248,113,113,0.9)]', text: 'text-red-400', chip: 'bg-red-500/10 border-red-500/25' },
 }
 
-// 铁路蓝主色
-const ACCENT = { dark: 'text-[#5aa2ff]', light: 'text-blue-600' }
+const CARD = 'bg-card border br-card rounded-3xl'
+
+function SignalChip({ level, label, dark = false }: { level: keyof typeof SIGNAL; label: string; dark?: boolean }) {
+  const s = SIGNAL[level]
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[14px] font-medium ${s.chip} ${s.text}`}>
+      <span className={`w-2 h-2 rounded-full ${s.dot} ${s.glow} ${dark ? '' : 'signal-breathe'}`} />
+      {label}
+    </span>
+  )
+}
+
+function greeting() {
+  const h = new Date().getHours()
+  if (h < 6) return '夜班辛苦了'
+  if (h < 12) return '早上好'
+  if (h < 14) return '中午好'
+  if (h < 18) return '下午好'
+  return '晚上好'
+}
 
 export function HomePage() {
-  const data = mockData
-  const config = statusConfig[data.status]
-  const [isDark, setIsDark] = useState(true)
-  const [scoreAnimated, setScoreAnimated] = useState(0)
-  const [ringProgress, setRingProgress] = useState(0)
-  const [heartBeat, setHeartBeat] = useState(false)
   const [mounted, setMounted] = useState(false)
-
-  // 页面加载动画
-  useEffect(() => {
-    setMounted(true)
-    const scoreTimer = setTimeout(() => {
-      let current = 0
-      const interval = setInterval(() => {
-        current += 2
-        if (current >= data.score) {
-          setScoreAnimated(data.score)
-          clearInterval(interval)
-        } else {
-          setScoreAnimated(current)
-        }
-      }, 20)
-    }, 300)
-    const ringTimer = setTimeout(() => {
-      setRingProgress(data.score)
-    }, 500)
-    return () => { clearTimeout(scoreTimer); clearTimeout(ringTimer) }
-  }, [data.score])
-
-  // 心跳动画
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setHeartBeat(true)
-      setTimeout(() => setHeartBeat(false), 200)
-    }, 1000)
-    return () => clearInterval(interval)
-  }, [])
-
-  const circumference = 2 * Math.PI * 54
-  const strokeDashoffset = circumference - (ringProgress / 100) * circumference
-
-  return (
-    <div className={`min-h-screen transition-colors duration-500 ${isDark ? 'bg-[#0a1730]' : 'bg-[#eff4fb]'}`}>
-      {/* 顶部铁路涂装饰线（复兴号红蓝） */}
-      <div className="fixed top-0 inset-x-0 z-40 h-[3px] bg-gradient-to-r from-[#e60012] via-[#e60012] via-30% to-[#2f7bff] to-90%" />
-
-      <div className="max-w-[430px] mx-auto px-5 py-5 pb-32">
-
-        {/* 顶部栏 */}
-        <div className={`flex items-center justify-between mb-6 ${mounted ? 'animate-fade-in' : 'opacity-0'}`}>
-          <div>
-            <div className="flex items-center gap-2 mb-0.5">
-              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold tracking-wide ${
-                isDark ? 'bg-[#e60012]/15 text-[#ff6b6b] border border-[#e60012]/30' : 'bg-red-50 text-red-600 border border-red-200'
-              }`}>
-                <TrainFront className="w-3 h-3" /> 成铁健康
-              </span>
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-md ${isDark ? 'bg-slate-700/60 text-slate-300' : 'bg-slate-200/70 text-slate-600'}`}>
-                {data.jobTitle}
-              </span>
-            </div>
-            <p className={`text-lg ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>今天好，</p>
-            <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>{data.userName}</p>
-          </div>
-          <div className="flex items-center gap-3">
-            {/* 深浅色切换 */}
-            <button
-              onClick={() => setIsDark(!isDark)}
-              className={`w-10 h-10 rounded-full flex items-center justify-center transition-all active:scale-90 ${
-                isDark ? 'bg-[#13264a] text-[#5aa2ff] border border-[#24406f]' : 'bg-white text-blue-500 shadow-md'
-              }`}
-            >
-              {isDark ? <Sun className="w-5 h-5" /> : <MoonStar className="w-5 h-5" />}
-            </button>
-            {/* 手表状态 */}
-            <button onClick={() => { window.location.hash = '#watch' }} className={`flex items-center gap-2 px-3 py-2 rounded-2xl text-xs transition-all active:scale-95 ${
-              isDark ? 'bg-[#13264a] border border-[#24406f]' : 'bg-white border border-slate-200 shadow-sm'
-            }`}>
-              <Watch className={`w-4 h-4 ${isDark ? 'text-[#5aa2ff]' : 'text-blue-600'}`} />
-              <div className="flex flex-col items-start">
-                <span className={`text-[10px] leading-tight ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>手表电量</span>
-                <div className="flex items-center gap-1">
-                  <span className={`w-1.5 h-1.5 rounded-full ${data.watchConnected ? 'bg-emerald-400' : 'bg-red-400'}`} />
-                  <span className={`font-medium ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{data.watchBattery}%</span>
-                </div>
-              </div>
-            </button>
-          </div>
-        </div>
-
-        {/* 核心评分卡片 - 带圆环动效 */}
-        <div className={`relative overflow-hidden rounded-3xl p-5 mb-5 transition-all duration-500 ${mounted ? 'animate-fade-in-up' : 'opacity-0 translate-y-4'} ${
-          isDark
-            ? `${config.darkBg} border ${config.darkBorder}`
-            : `${config.lightBg} border ${config.lightBorder} shadow-lg`
-        }`} style={{ animationDelay: '0.1s' }}>
-
-          <div className="flex items-center gap-6">
-            {/* 圆环进度 */}
-            <div className="relative w-32 h-32 flex-shrink-0">
-              <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120">
-                <circle cx="60" cy="60" r="54" fill="none" stroke={isDark ? '#1c3462' : '#dbe6f5'} strokeWidth="8" />
-                <circle
-                  cx="60" cy="60" r="54" fill="none" stroke={config.color} strokeWidth="8" strokeLinecap="round"
-                  strokeDasharray={circumference} strokeDashoffset={strokeDashoffset}
-                  className="transition-all duration-[2000ms] ease-out"
-                />
-                <circle
-                  cx="60" cy="60" r="54" fill="none" stroke={config.color} strokeWidth="12" strokeLinecap="round"
-                  strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} opacity="0.3"
-                  className="transition-all duration-[2000ms] ease-out blur-sm"
-                />
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-4xl font-black" style={{ color: config.color }}>
-                  {scoreAnimated}
-                </span>
-                <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>健康评分</span>
-              </div>
-            </div>
-
-            {/* 右侧信息 */}
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-2">
-                <span className={`text-sm font-medium ${isDark ? config.darkText : config.lightText}`}>
-                  {config.label}
-                </span>
-                {data.scoreChange !== 0 && (
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${
-                    data.scoreChange > 0
-                      ? isDark ? 'bg-emerald-500/20 text-emerald-400' : 'bg-emerald-100 text-emerald-700'
-                      : isDark ? 'bg-red-500/20 text-red-400' : 'bg-red-100 text-red-700'
-                  }`}>
-                    {data.scoreChange > 0 ? '↑' : '↓'}{Math.abs(data.scoreChange)}
-                  </span>
-                )}
-              </div>
-              <p className={`text-sm leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                {data.advice}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* 实时心率 + 身体恢复度 */}
-        <div className="grid grid-cols-2 gap-3 mb-3">
-          <Card className={`overflow-hidden transition-all duration-300 active:scale-[0.97] ${
-            isDark ? 'bg-[#13264a]/80 border-[#24406f]' : 'bg-white border-slate-200 shadow-md'
-          }`}>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-3">
-                <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>实时心率</span>
-                <Heart className={`w-5 h-5 text-red-500 transition-transform duration-200 ${heartBeat ? 'scale-125' : 'scale-100'}`} fill="#ef4444" />
-              </div>
-              <div className="flex items-baseline gap-1">
-                <span className={`text-4xl font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>{data.currentHeartRate}</span>
-                <span className={`text-sm ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>bpm</span>
-              </div>
-              <p className="text-xs text-emerald-500 mt-1">正常范围</p>
-            </CardContent>
-          </Card>
-
-          <Card className={`overflow-hidden transition-all duration-300 active:scale-[0.97] ${
-            isDark ? 'bg-[#13264a]/80 border-[#24406f]' : 'bg-white border-slate-200 shadow-md'
-          }`}>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-3">
-                <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>身体恢复度</span>
-                <Zap className="w-5 h-5 text-amber-500" />
-              </div>
-              <div className="flex items-baseline gap-1">
-                <span className={`text-4xl font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>{data.metrics.recovery.value}</span>
-                <span className={`text-sm ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>%</span>
-              </div>
-              <p className="text-xs text-emerald-500 mt-1 flex items-center gap-1">
-                <TrendingUp className="w-3 h-3" /> 恢复良好
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* SOS 紧急求助（铁路手表项目专属） */}
-        <Card className={`mb-5 overflow-hidden transition-all duration-300 active:scale-[0.98] ${
-          isDark
-            ? 'bg-gradient-to-r from-[#2a0a10] to-[#13264a]/80 border-[#e60012]/30'
-            : 'bg-gradient-to-r from-red-50 to-white border-red-200 shadow-md'
-        }`}>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${isDark ? 'bg-[#e60012]/15' : 'bg-red-100'}`}>
-                  <Siren className={`h-5 w-5 ${isDark ? 'text-[#ff6b6b]' : 'text-red-600'}`} />
-                </div>
-                <div>
-                  <p className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-slate-800'}`}>SOS 紧急求助</p>
-                  <p className={`text-xs mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                    {data.sos.normal ? '系统正常' : '有未处理事件'} · 本月 {data.sos.monthCount} 次 · 上次：{data.sos.lastRecord}
-                  </p>
-                </div>
-              </div>
-              <button className={`relative w-14 h-14 rounded-full bg-gradient-to-br from-[#e60012] to-[#a3000d] flex flex-col items-center justify-center shadow-lg shadow-red-900/40 transition-all duration-200 active:scale-90`}>
-                <span className="absolute inset-0 rounded-full bg-[#e60012]/30 animate-ping" style={{ animationDuration: '3s' }} />
-                <span className="text-[10px] font-bold text-white/90 leading-none relative z-10">长按</span>
-                <span className="text-sm font-black text-white leading-tight relative z-10">呼救</span>
-              </button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* 健康指标横向滚动 */}
-        <div className="mb-5">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className={`text-sm font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>健康指标</h3>
-            <button onClick={() => { window.location.hash = '#health' }} className={`text-xs flex items-center gap-1 active:opacity-70 ${isDark ? ACCENT.dark : ACCENT.light}`}>
-              查看全部 <ChevronRight className="w-3 h-3" />
-            </button>
-          </div>
-          <div className="flex gap-3 overflow-x-auto pb-2 -mx-5 px-5">
-            <MetricPill icon={<Droplets className="w-4 h-4" />} label="血氧" value={98} unit="%" status="good" hint="正常" isDark={isDark} />
-            <MetricPill icon={<Activity className="w-4 h-4" />} label="血压" value="128/82" unit="mmHg" status="good" hint="正常" isDark={isDark} />
-            <MetricPill icon={<Moon className="w-4 h-4" />} label="睡眠" value={6.5} unit="h" status="warning" hint="深睡2.1h" trend="up" isDark={isDark} />
-            <MetricPill icon={<Heart className="w-4 h-4" />} label="静息心率" value={72} unit="bpm" status="good" hint="正常" isDark={isDark} />
-          </div>
-        </div>
-
-        {/* 今日值乘 */}
-        <Card className={`mb-5 transition-all duration-300 active:scale-[0.98] ${
-          isDark ? 'bg-gradient-to-br from-[#0e2a5c]/60 to-[#13264a]/80 border-[#2f5ba8]/30' : 'bg-gradient-to-br from-blue-50 to-white border-blue-200 shadow-md'
-        }`}>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <TrainFront className={`w-5 h-5 ${isDark ? 'text-[#5aa2ff]' : 'text-blue-600'}`} />
-                <span className={`text-sm font-medium ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>今日值乘</span>
-              </div>
-              <button onClick={() => { window.location.hash = '#worktime' }} className={`text-xs flex items-center gap-1 ${isDark ? ACCENT.dark : ACCENT.light}`}>
-                详情 <ChevronRight className="w-3 h-3" />
-              </button>
-            </div>
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <p className={`text-3xl font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>
-                  {data.workTime.today.hours}<span className={`text-lg ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>h</span>
-                  {data.workTime.today.minutes}<span className={`text-lg ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>m</span>
-                </p>
-                <p className={`text-xs mt-1 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>今日已值乘</p>
-              </div>
-              <div>
-                <p className={`text-2xl font-bold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                  {data.workTime.month.hours}<span className={`text-sm ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>/{data.workTime.month.target}h</span>
-                </p>
-                <p className={`text-xs mt-1 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>本月累计</p>
-              </div>
-              <div>
-                <p className={`text-2xl font-bold ${data.workTime.overwork.count > 0 ? 'text-red-500' : 'text-emerald-500'}`}>{data.workTime.overwork.count}<span className={`text-sm ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>次</span></p>
-                <p className={`text-xs mt-1 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>本月超劳</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* 佩戴状态 */}
-        <Card className={`mb-5 transition-all duration-300 active:scale-[0.98] ${
-          isDark ? 'bg-[#13264a]/80 border-[#24406f]' : 'bg-white border-slate-200 shadow-md'
-        }`}>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${isDark ? 'bg-[#1c3462]' : 'bg-blue-50'}`}>
-                  <Watch className={`h-5 w-5 ${isDark ? 'text-[#5aa2ff]' : 'text-blue-600'}`} />
-                </div>
-                <div>
-                  <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>今日佩戴</p>
-                  <p className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-slate-800'}`}>
-                    {data.wearTime.hours}h {data.wearTime.minutes}m
-                    <span className={`text-xs font-normal ml-2 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>离线{data.wearTime.offlineMinutes}分钟</span>
-                  </p>
-                </div>
-              </div>
-              <div className={`px-3 py-1.5 rounded-xl text-sm font-medium ${
-                data.wearTime.compliant
-                  ? isDark ? 'bg-emerald-500/20 text-emerald-400' : 'bg-emerald-100 text-emerald-700'
-                  : isDark ? 'bg-amber-500/20 text-amber-400' : 'bg-amber-100 text-amber-700'
-              }`}>
-                {data.wearTime.compliant ? '✓ 合规' : '未达标'}
-              </div>
-            </div>
-            <div className="mt-3">
-              <div className={`flex justify-between text-xs mb-1 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                <span>离线时长</span>
-                <span>{data.wearTime.offlineMinutes}/{data.wearTime.maxAllowed}分钟</span>
-              </div>
-              <div className={`h-1.5 rounded-full overflow-hidden ${isDark ? 'bg-[#1c3462]' : 'bg-slate-200'}`}>
-                <div className={`h-full rounded-full transition-all duration-500 ${
-                  data.wearTime.offlineMinutes / data.wearTime.maxAllowed > 0.8 ? 'bg-amber-500' : 'bg-emerald-500'
-                }`} style={{ width: `${(data.wearTime.offlineMinutes / data.wearTime.maxAllowed) * 100}%` }} />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* 本周挑战引流卡片 -> 我的 */}
-        <button
-          onClick={() => { window.location.hash = '#mine' }}
-          className={`w-full mb-5 rounded-2xl p-4 flex items-center gap-4 text-left transition-all duration-300 active:scale-[0.98] ${
-            isDark
-              ? 'bg-gradient-to-r from-amber-900/30 to-[#13264a]/60 border border-amber-700/30'
-              : 'bg-gradient-to-r from-amber-50 to-white border border-amber-200 shadow-md'
-          }`}
-        >
-          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 ${isDark ? 'bg-amber-500/20' : 'bg-amber-100'}`}>
-            <Flame className={`w-6 h-6 ${isDark ? 'text-amber-400' : 'text-amber-500'}`} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <span className={`text-base font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>本周挑战还差 120 步</span>
-            </div>
-            <p className={`text-sm mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-              值乘间隙走两圈，达成得
-              <span className={`font-semibold ${isDark ? 'text-amber-400' : 'text-amber-600'}`}> 30 积分</span>
-            </p>
-          </div>
-          <div className="flex items-center gap-1 flex-shrink-0">
-            <Coins className={`w-4 h-4 ${isDark ? 'text-amber-400' : 'text-amber-500'}`} />
-            <span className={`text-sm font-bold ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>1280</span>
-            <ChevronRight className={`w-5 h-5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`} />
-          </div>
-        </button>
-
-        {/* 快捷问答 */}
-        <div className="mb-5">
-          <div className="flex items-center gap-2 mb-3">
-            <MessageCircle className={`w-4 h-4 ${isDark ? ACCENT.dark : ACCENT.light}`} />
-            <h3 className={`text-sm font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>快捷提问</h3>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {data.quickQuestions.map((q, i) => (
-              <button key={i} onClick={() => { window.location.hash = '#ask' }} className={`px-4 py-2 rounded-full text-sm transition-all duration-150 active:scale-95 ${
-                isDark
-                  ? 'bg-[#13264a] hover:bg-[#1c3462] border border-[#24406f] text-slate-300'
-                  : 'bg-white hover:bg-blue-50 border border-slate-200 text-slate-600 shadow-sm'
-              }`}>
-                {q}
-              </button>
-            ))}
-          </div>
-        </div>
-
-      </div>
-
-      {/* 底部导航栏 */}
-      <BottomNav isDark={isDark} />
-    </div>
-  )
-}
-
-// 指标药丸组件
-function MetricPill({ icon, label, value, unit, status, hint, trend, isDark }: {
-  icon: React.ReactNode; label: string; value: string | number; unit: string; status: 'good' | 'warning' | 'danger'; hint: string; trend?: 'up' | 'down' | 'stable'; isDark: boolean
-}) {
-  const statusColors = { good: isDark ? 'text-emerald-400' : 'text-emerald-600', warning: isDark ? 'text-amber-400' : 'text-amber-600', danger: isDark ? 'text-red-400' : 'text-red-600' }
-  const TrendIcon = trend === 'up' ? TrendingUp : trend === 'down' ? TrendingDown : Minus
-  return (
-    <div className={`flex-shrink-0 rounded-2xl p-4 min-w-[140px] transition-all duration-150 active:scale-95 ${
-      isDark ? 'bg-[#13264a]/80 border border-[#24406f]' : 'bg-white border border-slate-200 shadow-md'
-    }`}>
-      <div className="flex items-center gap-2 mb-2">
-        <span className={statusColors[status]}>{icon}</span>
-        <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{label}</span>
-      </div>
-      <div className="flex items-baseline gap-1">
-        <span className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>{value}</span>
-        <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{unit}</span>
-      </div>
-      <div className="flex items-center gap-1 mt-1">
-        {trend && <TrendIcon className={`w-3 h-3 ${statusColors[status]}`} />}
-        <span className={`text-xs ${statusColors[status]}`}>{hint}</span>
-      </div>
-    </div>
-  )
-}
-
-// 底部导航栏
-function BottomNav({ isDark }: { isDark: boolean }) {
-  const [activeTab, setActiveTab] = useState('home')
-
-  const handleNavClick = (tab: string) => {
-    setActiveTab(tab)
-    if (tab !== 'home') {
-      window.location.hash = `#${tab}`
-    } else {
-      window.location.hash = ''
-    }
+  const [arcOn, setArcOn] = useState(false)
+  const [heartBeat, setHeartBeat] = useState(false)
+  const [light, setLight] = useState(() => document.documentElement.classList.contains('theme-light'))
+  const toggleTheme = () => {
+    const on = !light
+    document.documentElement.classList.toggle('theme-light', on)
+    localStorage.setItem('ct-theme', on ? 'light' : 'dark')
+    setLight(on)
   }
 
+  useEffect(() => {
+    setMounted(true)
+    const t = setTimeout(() => setArcOn(true), 600)
+    const beat = setInterval(() => {
+      setHeartBeat(true)
+      setTimeout(() => setHeartBeat(false), 200)
+    }, 1100)
+    return () => { clearTimeout(t); clearInterval(beat) }
+  }, [])
+
+  const sleep = mock.sleep
+  const arcLen = 2 * Math.PI * 18
+
   return (
-    <div className="fixed bottom-0 inset-x-0 z-50" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
-      <div className={`max-w-[430px] mx-auto ${isDark ? 'bg-[#0a1730]' : 'bg-white'} border-t ${isDark ? 'border-[#1c3462]' : 'border-slate-200'}`}>
-        <div className="flex items-center justify-between px-6 py-3">
-          <NavItem icon={<HomeIcon />} label="首页" active={activeTab === 'home'} onClick={() => handleNavClick('home')} isDark={isDark} />
-          <NavItem icon={<ChartIcon />} label="健康" active={activeTab === 'health'} onClick={() => handleNavClick('health')} isDark={isDark} />
-          {/* 中间AI按钮 */}
-          <button onClick={() => handleNavClick('ask')} className={`relative -mt-8 w-16 h-16 rounded-full bg-gradient-to-br from-[#5aa2ff] via-[#2f7bff] to-[#1d4ed8] flex items-center justify-center shadow-lg shadow-blue-600/40 transition-all duration-200 active:scale-90 ${activeTab === 'ask' ? 'ring-4 ring-[#5aa2ff]/30' : ''}`}>
-            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-white/20 to-transparent" />
-            <div className="absolute top-1 right-2 w-2 h-2 rounded-full bg-white/60 animate-pulse" />
-            <Sparkles className="w-7 h-7 text-white relative z-10" />
+    <div className="relative min-h-screen bg-app t1 overflow-x-hidden">
+      {/* 氛围层：站台灯光雾 + 钢轨水平线 */}
+      <div className="fixed inset-0 pointer-events-none" style={{
+        background: 'radial-gradient(ellipse 90% 45% at 50% -8%, rgba(90,162,255,0.12), transparent 70%)',
+      }} />
+      <div className="fixed inset-0 pointer-events-none opacity-60" style={{
+        backgroundImage: 'repeating-linear-gradient(to bottom, rgba(148,184,255,0.03) 0 1px, transparent 1px 64px)',
+      }} />
+      {/* 品牌线：复兴号红蓝 */}
+      <div className="fixed top-0 inset-x-0 z-40 h-[3px] bg-gradient-to-r from-[#e60012] via-[#e60012] via-30% to-[#2f7bff] to-90%" />
+
+      <div className="relative max-w-[430px] mx-auto px-5 pt-6 pb-32">
+
+        {/* ── 顶部 ── */}
+        <header className={`flex items-start justify-between mb-6 ${mounted ? 'animate-fade-in' : 'opacity-0'}`}>
+          <div>
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[12.5px] font-semibold bg-[#e60012]/15 text-[#ff6b6b] border border-[#e60012]/30">
+                <TrainFront className="w-3.5 h-3.5" /> 成铁健康
+              </span>
+              <span className="text-[12.5px] px-1.5 py-0.5 rounded-md bg-slate-700/60 t2">{mock.jobTitle}</span>
+            </div>
+            <p className="text-[24px] font-bold leading-tight">{greeting()}，{mock.userName}</p>
+            <p className="flex items-center gap-1 text-[14.5px] t3 mt-1">
+              10月12日 星期一 ·
+              <MapPin className="w-3.5 h-3.5 t4" />
+              <span>{mock.location}</span>
+              · {mock.weather}
+            </p>
+          </div>
+          <div className="flex flex-col items-end gap-1.5 shrink-0 mr-2">
+            <button onClick={toggleTheme} aria-label="切换主题" className="flex items-center gap-1 h-7 px-3 rounded-full bg-card border br-card active:scale-95 transition-transform">
+              {light ? <Moon className="w-3.5 h-3.5 ta" /> : <Sun className="w-3.5 h-3.5 ta" />}
+              <span className="text-[12.5px] ta font-medium">{light ? '深色' : '浅色'}</span>
+            </button>
+            <button onClick={() => { window.location.hash = '#watch' }} className="flex flex-col items-center gap-1 px-3 py-2.5 rounded-2xl bg-card border br-card active:scale-95 transition-transform">
+              <Watch className="w-5 h-5 ta" />
+              <div className="flex items-center gap-1">
+                <span className={`w-1.5 h-1.5 rounded-full ${mock.watch.connected ? 'bg-emerald-400' : 'bg-red-400'}`} />
+                <span className="text-[14.5px] font-medium t2">{mock.watch.battery}%</span>
+              </div>
+            </button>
+          </div>
+        </header>
+
+        {/* ── 睡眠 Hero：枕木式分段条 ── */}
+        <section className={`${CARD} p-5 mb-4 ${mounted ? 'animate-fade-in-up' : 'opacity-0'}`} style={{ animationDelay: '0.08s' }}>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Moon className="w-[18px] h-[18px] text-[#818cf8]" />
+              <span className="text-[15px] font-semibold">昨晚睡眠</span>
+            </div>
+            <SignalChip level={sleep.verdict.level} label={sleep.verdict.label} />
+          </div>
+
+          <div className="flex items-end justify-between mb-4">
+            <div className="flex items-baseline gap-1 tabular-nums">
+              <span className="text-[56px] leading-none font-black tracking-tight">{sleep.hours}</span>
+              <span className="text-lg t3 font-medium">小时</span>
+              <span className="text-[34px] leading-none font-black tracking-tight ml-1">{sleep.minutes}</span>
+              <span className="text-lg t3 font-medium">分</span>
+            </div>
+            <span className="flex items-center gap-1 text-[14.5px] text-emerald-400 mb-1.5">
+              <TrendingUp className="w-3.5 h-3.5" /> 比前天多{Math.abs(sleep.changeMinutes)}分钟
+            </span>
+          </div>
+
+          {/* 睡眠时间轴：双轨钢轨 + 等距枕木（每根=15分钟，颜色=睡眠阶段） */}
+          <div className="mb-3">
+            <div className="relative h-[30px]">
+              <div className="absolute inset-x-0 top-0 h-[2.5px] rounded-full bg-gradient-to-r from-[#1c3462] via-[#41639e] to-[#1c3462]" />
+              <div className="absolute inset-x-[2px] top-[5px] flex gap-[5px] h-[15px]">
+                {ties.map((st, i) => (
+                  <span key={i} className="flex-1 rounded-[2.5px] seg-grow" style={{
+                    backgroundColor: STAGE[st].color,
+                    animationDelay: `${0.45 + i * 0.045}s`,
+                  }} />
+                ))}
+              </div>
+              <div className="absolute inset-x-0 bottom-0 h-[2.5px] rounded-full bg-gradient-to-r from-[#1c3462] via-[#41639e] to-[#1c3462]" />
+            </div>
+            <div className="flex justify-between mt-2 text-[13px] t4 tabular-nums">
+              <span>{sleep.fellAsleep} 入睡</span>
+              <span>{sleep.wokeUp} 醒来</span>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-x-4 gap-y-1.5 mb-4">
+            {Object.entries(STAGE).map(([key, meta]) => (
+              <span key={key} className="flex items-center gap-1.5 text-[14px] t3">
+                <span className="w-[4px] h-[11px] rounded-[1px]" style={{ backgroundColor: meta.color }} />
+                {meta.label} <span className="t2 font-medium tabular-nums">{stageHours(key).toFixed(1)}h</span>
+              </span>
+            ))}
+          </div>
+
+          <div className="flex items-center justify-between pt-3 border-t br-line text-[14.5px] t3">
+            <span>深睡占比 <span className="t2 font-medium tabular-nums">{Math.round((stageHours('deep') / totalSleep) * 100)}%</span></span>
+            <span>夜间清醒 <span className="t2 font-medium tabular-nums">{sleep.interruptions} 次</span></span>
+          </div>
+        </section>
+
+        {/* ── 今日状态三卡 ── */}
+        <section className={`grid grid-cols-3 gap-3 mb-4 ${mounted ? 'animate-fade-in-up' : 'opacity-0'}`} style={{ animationDelay: '0.16s' }}>
+          <div className={`${CARD} p-4`}>
+            <div className="flex items-center justify-between h-7 mb-2.5">
+              <span className="text-[14px] t3">恢复度</span>
+              <svg className="w-6 h-6 -rotate-90" viewBox="0 0 40 40">
+                <circle cx="20" cy="20" r="18" fill="none" stroke="#1c3462" strokeWidth="4" />
+                <circle cx="20" cy="20" r="18" fill="none" stroke="#34d399" strokeWidth="4" strokeLinecap="round"
+                  strokeDasharray={arcLen} strokeDashoffset={arcOn ? arcLen * (1 - mock.today.recovery / 100) : arcLen}
+                  className="transition-all duration-[1400ms] ease-out" />
+              </svg>
+            </div>
+            <p className="text-[30px] font-black tabular-nums leading-none">{mock.today.recovery}<span className="text-[15px] t3 font-medium ml-0.5">%</span></p>
+            <p className="text-[13px] text-emerald-400 mt-1.5">恢复良好</p>
+          </div>
+          <div className={`${CARD} p-4`}>
+            <div className="flex items-center justify-between h-7 mb-2.5">
+              <span className="text-[14px] t3">静息心率</span>
+              <Heart className={`w-6 h-6 text-red-400 transition-transform duration-200 ${heartBeat ? 'scale-125' : 'scale-100'}`} fill="#f87171" />
+            </div>
+            <p className="text-[30px] font-black tabular-nums leading-none">{mock.today.restingHr}<span className="text-[15px] t3 font-medium ml-0.5">bpm</span></p>
+            <p className="text-[13px] text-emerald-400 mt-1.5">正常范围</p>
+          </div>
+          <div className={`${CARD} p-4`}>
+            <div className="flex items-center justify-between h-7 mb-2.5">
+              <span className="text-[14px] t3">血氧</span>
+              <Droplets className="w-6 h-6 ta" />
+            </div>
+            <p className="text-[30px] font-black tabular-nums leading-none">{mock.today.spo2}<span className="text-[15px] t3 font-medium ml-0.5">%</span></p>
+            <p className="text-[13px] text-emerald-400 mt-1.5">正常</p>
+          </div>
+        </section>
+
+        {/* ── 身体指标 2×2 ── */}
+        <section className={`grid grid-cols-2 gap-3 mb-4 ${mounted ? 'animate-fade-in-up' : 'opacity-0'}`} style={{ animationDelay: '0.22s' }}>
+          <button onClick={() => { window.location.hash = '#health' }} className={`${CARD} p-4 text-left active:scale-[0.97] transition-transform`}>
+            <div className="flex items-center gap-2 mb-2">
+              <Activity className="w-[18px] h-[18px] ta" />
+              <span className="text-[14.5px] t3">血压</span>
+              <span className="ml-auto w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)]" />
+            </div>
+            <p className="text-[28px] font-black tabular-nums leading-none">{mock.metrics.bp.value}<span className="text-[14px] t4 font-medium ml-1">mmHg</span></p>
+            <p className="text-[13px] t4 mt-1.5 leading-snug">{mock.metrics.bp.hint}<br />仅自己可见</p>
           </button>
-          <NavItem icon={<UserIcon />} label="我的" active={activeTab === 'mine'} onClick={() => handleNavClick('mine')} isDark={isDark} />
-          <NavItem icon={<SettingsIcon />} label="设置" active={activeTab === 'settings'} onClick={() => handleNavClick('settings')} isDark={isDark} />
-        </div>
+          <button onClick={() => { window.location.hash = '#health' }} className={`${CARD} p-4 text-left active:scale-[0.97] transition-transform`}>
+            <div className="flex items-center gap-2 mb-2">
+              <Thermometer className="w-[18px] h-[18px] ta" />
+              <span className="text-[14.5px] t3">体温</span>
+              <span className="ml-auto w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)]" />
+            </div>
+            <p className="text-[28px] font-black tabular-nums leading-none">{mock.metrics.temp.value}<span className="text-[14px] t4 font-medium ml-1">°C</span></p>
+            <p className="text-[13px] t4 mt-1.5">{mock.metrics.temp.hint}</p>
+          </button>
+          <button onClick={() => { window.location.hash = '#health' }} className={`${CARD} p-4 text-left active:scale-[0.97] transition-transform`}>
+            <div className="flex items-center gap-2 mb-2">
+              <Footprints className="w-[18px] h-[18px] ta" />
+              <span className="text-[14.5px] t3">今日步数</span>
+              <span className="ml-auto w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.9)]" />
+            </div>
+            <p className="text-[28px] font-black tabular-nums leading-none">{mock.metrics.steps.value}<span className="text-[14px] t4 font-medium ml-1">步</span></p>
+            <p className="text-[13px] t4 mt-1.5">{mock.metrics.steps.hint}</p>
+          </button>
+          <button onClick={() => { window.location.hash = '#watch' }} className={`${CARD} p-4 text-left active:scale-[0.97] transition-transform`}>
+            <div className="flex items-center gap-2 mb-2">
+              <Watch className="w-[18px] h-[18px] ta" />
+              <span className="text-[14.5px] t3">佩戴时长</span>
+              <span className="ml-auto w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)]" />
+            </div>
+            <p className="text-[28px] font-black tabular-nums leading-none">{mock.metrics.wear.value}</p>
+            <p className="text-[13px] t4 mt-1.5">{mock.metrics.wear.hint}</p>
+          </button>
+        </section>
+
+        {/* ── SOS ── */}
+        <section className={`rounded-3xl p-4 mb-3 bg-[#e60012]/10 border border-[#e60012]/25 ${mounted ? 'animate-fade-in-up' : 'opacity-0'}`} style={{ animationDelay: '0.32s' }}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-[#e60012]/15 flex items-center justify-center">
+                <Siren className="w-[22px] h-[22px] text-[#ff6b6b]" />
+              </div>
+              <div>
+                <p className="text-[15px] font-semibold">SOS 紧急求助</p>
+                <p className="text-[14px] t3 mt-0.5">系统正常 · 上次 {mock.sos.lastRecord}</p>
+              </div>
+            </div>
+            <button className="relative w-14 h-14 rounded-full bg-gradient-to-br from-[#e60012] to-[#a3000d] flex flex-col items-center justify-center shadow-lg shadow-red-900/40 active:scale-90 transition-transform">
+              <span className="absolute inset-0 rounded-full bg-[#e60012]/30 animate-ping" style={{ animationDuration: '3s' }} />
+              <span className="text-[11px] font-bold text-white/90 leading-none relative z-10">长按</span>
+              <span className="text-[15px] font-black text-white leading-tight relative z-10">呼救</span>
+            </button>
+          </div>
+        </section>
+
+        {/* 数据说明（弱化footnote） */}
+        <button onClick={() => { window.location.hash = '#datavisible' }}
+          className="w-full flex items-center justify-center gap-0.5 text-[12.5px] t4 active:opacity-70">
+          健康数据仅自己可见 · 了解数据说明 <ChevronRight className="w-3 h-3" />
+        </button>
+        <p className="text-center text-[11px] t4 mt-2">预览版 {APP_VERSION}</p>
+
       </div>
-      <div className={`${isDark ? 'bg-[#0a1730]' : 'bg-white'}`} style={{ height: 'env(safe-area-inset-bottom, 0px)' }} />
+
+      <BottomNav reportNew={localStorage.getItem('ct-report-seen') !== '2026-09'} />
     </div>
   )
-}
-
-
-function NavItem({ icon, label, active, onClick, isDark }: { icon: React.ReactNode; label: string; active: boolean; onClick: () => void; isDark: boolean }) {
-  return (
-    <button onClick={onClick} className={`flex flex-col items-center gap-1 px-3 py-1 transition-all duration-150 active:scale-90 ${active ? (isDark ? 'text-[#5aa2ff]' : 'text-blue-600') : (isDark ? 'text-slate-500' : 'text-slate-400')}`}>
-      <span className="h-5 w-5">{icon}</span>
-      <span className="text-xs font-medium">{label}</span>
-    </button>
-  )
-}
-
-function HomeIcon() {
-  return <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
-}
-function ChartIcon() {
-  return <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg>
-}
-function UserIcon() {
-  return <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
-}
-function SettingsIcon() {
-  return <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
 }

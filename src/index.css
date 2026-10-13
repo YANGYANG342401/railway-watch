@@ -89,6 +89,21 @@
   animation: voice-bar 0.8s ease-in-out infinite;
 }
 
+/* 成铁员工端·夜行信号灯主题 */
+@keyframes seg-grow {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+.seg-grow {
+  transform-origin: left center;
+  animation: seg-grow 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes signal-breathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+.signal-breathe { animation: signal-breathe 2.4s ease-in-out infinite; }
+
 /* 成铁大屏动效 */
 @keyframes ct-pulse-ring {
   0% { transform: scale(0.6); opacity: 0.9; }
@@ -113,3 +128,52 @@
   50% { box-shadow: 0 0 26px rgba(230, 0, 18, 0.85); }
 }
 .ct-glow-red { animation: ct-glow-red 1.4s ease-in-out infinite; }
+
+/* ── 双主题变量：夜行版（默认） / 日间版 ── */
+:root {
+  --c-bg: #081226;
+  --c-nav: rgba(8, 18, 38, 0.95);
+  --c-card: #101f3d;
+  --c-cardbr: #24406f;
+  --c-line: #1c3462;
+  --c-t1: #ffffff;
+  --c-t2: #e2e8f0;
+  --c-t3: #94a3b8;
+  --c-t4: #64748b;
+  --c-ta: #5aa2ff;
+  --c-sheet: #0d1b36;
+  --c-input: #0c1a35;
+  --c-soft: #13264a;
+}
+.theme-light {
+  --c-bg: #eef2fa;
+  --c-nav: rgba(255, 255, 255, 0.95);
+  --c-card: #ffffff;
+  --c-cardbr: #d8e2f2;
+  --c-line: #e4ebf6;
+  --c-t1: #1c3d7a;
+  --c-t2: #35568f;
+  --c-t3: #5673a6;
+  --c-t4: #7b90ba;
+  --c-ta: #1d64e0;
+  --c-sheet: #ffffff;
+  --c-input: #f1f5fc;
+  --c-soft: #e7edf8;
+}
+html { background-color: var(--c-bg); }
+.bg-app { background-color: var(--c-bg); }
+.nav-bg { background-color: var(--c-nav); }
+.bg-card { background-color: var(--c-card); }
+.br-card { border-color: var(--c-cardbr); }
+.br-line { border-color: var(--c-line); }
+.divide-line > :not([hidden]) ~ :not([hidden]) { border-color: var(--c-line); }
+.t1 { color: var(--c-t1); }
+.t2 { color: var(--c-t2); }
+.t3 { color: var(--c-t3); }
+.t4 { color: var(--c-t4); }
+.ta { color: var(--c-ta); }
+.bg-sheet { background-color: var(--c-sheet); }
+.bg-input { background-color: var(--c-input); }
+.bg-soft { background-color: var(--c-soft); }
+.ring-offset-sheet { --tw-ring-offset-color: var(--c-sheet); }
+.br-app { border-color: var(--c-bg); }
